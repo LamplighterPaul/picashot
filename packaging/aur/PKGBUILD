@@ -1,0 +1,26 @@
+# Maintainer: Paul Zammit <zammpaul at gmail dot com>
+pkgname=picashot
+pkgver=0.1
+pkgrel=1
+pkgdesc="A photo booth: camera on screen at launch, live GPU filters, photos and videos"
+arch=('x86_64' 'aarch64')
+url="https://github.com/LamplighterPaul/picashot"
+license=('MIT')
+depends=('sdl3>=3.4' 'vulkan-icd-loader' 'libjpeg-turbo' 'hicolor-icon-theme')
+makedepends=('shaderc')
+optdepends=('ffmpeg: record videos'
+            'intel-media-driver: GPU video encoding on Intel'
+            'libnotify: a notification when a photo or video is saved'
+            'vulkan-swrast: run without a GPU driver, on the CPU')
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('f6d4a3588e43893c7251d5089d143acb477238322721ee6a42a85ed408d248f8')
+
+build() {
+  cd "$pkgname-$pkgver"
+  make PREFIX=/usr
+}
+
+package() {
+  cd "$pkgname-$pkgver"
+  make PREFIX=/usr DESTDIR="$pkgdir" install
+}

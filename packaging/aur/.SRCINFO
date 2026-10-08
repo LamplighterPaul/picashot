@@ -1,0 +1,21 @@
+pkgbase = picashot
+	pkgdesc = A photo booth: camera on screen at launch, live GPU filters, photos and videos
+	pkgver = 0.1
+	pkgrel = 1
+	url = https://github.com/LamplighterPaul/picashot
+	arch = x86_64
+	arch = aarch64
+	license = MIT
+	makedepends = shaderc
+	depends = sdl3>=3.4
+	depends = vulkan-icd-loader
+	depends = libjpeg-turbo
+	depends = hicolor-icon-theme
+	optdepends = ffmpeg: record videos
+	optdepends = intel-media-driver: GPU video encoding on Intel
+	optdepends = libnotify: a notification when a photo or video is saved
+	optdepends = vulkan-swrast: run without a GPU driver, on the CPU
+	source = picashot-0.1.tar.gz::https://github.com/LamplighterPaul/picashot/archive/refs/tags/v0.1.tar.gz
+	sha256sums = f6d4a3588e43893c7251d5089d143acb477238322721ee6a42a85ed408d248f8
+
+pkgname = picashot
