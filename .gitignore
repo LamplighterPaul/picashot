@@ -1,0 +1,7 @@
+build/
+picashot
+packaging/pkg/
+packaging/src/
+packaging/*.pkg.tar.*
+bench/
+picashot-dev

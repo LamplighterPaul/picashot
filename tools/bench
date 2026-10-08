@@ -1,0 +1,108 @@
+#!/bin/sh
+# Runs the same four scenarios every time and prints one table, so two builds can be compared.
+#   tools/bench [label] [binary]        default label: the date; default binary: ./picashot
+# Scenarios: preview (Normal), record with sound (Noir, the hardest filter to encode),
+# record without sound (Normal), and three photos. Each run uses PICASHOT_PROFILE=1.
+# Under Hyprland the window opens silently on workspace 10 so the desktop is not disturbed.
+# Close other camera apps first. Test recordings and photos are deleted afterwards.
+set -eu
+label=${1:-$(date +%Y-%m-%d_%H%M)}
+bin=$(realpath "${2:-./picashot}")
+PREVIEW=${PREVIEW:-20}; RECORD=${RECORD:-45}; RECORD_SILENT=${RECORD_SILENT:-20}
+out=${BENCH_DIR:-bench}/$label
+mkdir -p "$out"
+out=$(realpath "$out")
+counter=$(realpath build/tools/cyclecount)
+[ -x "$counter" ] || { mkdir -p build/tools && cc -O2 -o build/tools/cyclecount tools/cyclecount.c && counter=$(realpath build/tools/cyclecount); }
+pics=$(xdg-user-dir PICTURES 2>/dev/null || echo "$HOME/Pictures")/Picashot
+vids=$(xdg-user-dir VIDEOS 2>/dev/null || echo "$HOME/Videos")/Picashot
+
+# While a scenario runs: after WARM seconds, count the app's (and its ffmpeg child's) instructions for
+# 8 seconds. Writes "app_minstr app_mcycles ffmpeg_minstr ffmpeg_mcycles" (millions per second).
+count_work() {   # count_work NAME
+    sleep "${WARM:-7}"
+    pid=$(pgrep -n -f "^$bin( |\$)" || true)
+    [ -n "$pid" ] || return 0
+    child=$(pgrep -P "$pid" -x ffmpeg | head -1 || true)
+    "$counter" "$pid" 8 > "$out/$1.app.count" 2>/dev/null &
+    [ -z "$child" ] || "$counter" "$child" 8 > "$out/$1.ffmpeg.count" 2>/dev/null &
+    wait
+}
+work() {   # work NAME -> "app Minstr/s | ffmpeg Minstr/s"
+    a=$(cut -d' ' -f1 "$out/$1.app.count" 2>/dev/null || true); f=$(cut -d' ' -f1 "$out/$1.ffmpeg.count" 2>/dev/null || true)
+    echo "${a:--} | ${f:--}"
+}
+
+run() {   # run NAME ENV ARGS...   waits for the app to exit
+    name=$1; env=$2; shift 2
+    log=$out/$name.log
+    stamp=$out/$name.stamp; : > "$stamp"
+    rm -f "$out/$name.done"
+    case "$name" in photos) ;; *) count_work "$name" & ;; esac
+    if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] && command -v hyprctl >/dev/null; then
+        hyprctl eval 'hl.window_rule({ match = { class = "^picashot-bench$" }, workspace = "10 silent", render_unfocused = true })' >/dev/null
+        hyprctl eval "hl.dispatch(hl.dsp.exec_cmd([[sh -c 'SDL_APP_ID=picashot-bench PICASHOT_PROFILE=1 $env $bin $* > $log 2>&1; touch $out/$name.done']]))" >/dev/null
+        while [ ! -e "$out/$name.done" ]; do sleep 1; done
+    else
+        env SDL_APP_ID=picashot-bench PICASHOT_PROFILE=1 $env "$bin" "$@" > "$log" 2>&1
+    fi
+}
+
+# Averages every "PROF" line of a log that matches rec=$2, skipping the first two reports (start-up).
+summarise() {
+    awk -v want="$2" '
+        /^PROF launch_ms=/ { split($2, a, "="); launch = a[2] }
+        /^PROF t=/ {
+            rec = -1
+            for (i = 2; i <= NF; i++) { split($i, kv, "="); if (kv[1] == "rec") rec = kv[2] }
+            if (rec != want) next
+            if (++seen <= 2) next
+            n++
+            for (i = 2; i <= NF; i++) { split($i, kv, "="); sum[kv[1]] += kv[2]; cnt[kv[1]]++; last[kv[1]] = kv[2] }
+        }
+        function avg(k) { return cnt[k] ? sprintf("%.1f", sum[k] / cnt[k]) : "-" }
+        END {
+            printf "%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s\n", avg("fps"), avg("cpu"), avg("cpu_top_thread"), avg("cpu_main"),
+                avg("cpu_ffmpeg"), (cnt["dropped"] ? last["dropped"] : "-"), avg("latency_p50"), avg("latency_p99"),
+                avg("gpu_filter_p50"), avg("gpu_present_p50"), avg("draw_capture_p50"), (cnt["peak_mb"] ? last["peak_mb"] : "-"), launch
+        }' "$1"
+}
+
+newest() { ls -t "$1" 2>/dev/null | head -1; }
+video_facts() {   # frames and seconds of the newest video made since the stamp file
+    f=$(find "$vids" -name '*.mp4' -newer "$1" 2>/dev/null | head -1)
+    [ -n "$f" ] || { echo "no file"; return; }
+    ffprobe -v error -select_streams v:0 -show_entries stream=nb_frames,duration,codec_name -of csv=p=0 "$f" | tr ',' ' '
+    echo "$(($(stat -c %s "$f") / 1024)) KB"
+    rm -f "$f"
+}
+
+echo "bench '$label': preview ${PREVIEW}s, record ${RECORD}s (Noir, sound), record ${RECORD_SILENT}s (Normal, no sound), 3 photos"
+run preview "" --quit-after "$PREVIEW"
+run record "" --record "$RECORD" --filter noir
+rec_video=$(video_facts "$out/record.stamp" | tr '\n' ' ')
+run silent "" --record "$RECORD_SILENT" --no-audio
+silent_video=$(video_facts "$out/silent.stamp" | tr '\n' ' ')
+: > "$out/photos.stamp0"
+run photos "" --snap 1.5
+run photos "" --snap 1.5
+run photos "" --snap 1.5
+photos=$(find "$pics" -name '*.png' -newer "$out/photos.stamp0" 2>/dev/null | wc -l)
+find "$pics" -name '*.png' -newer "$out/photos.stamp0" -delete 2>/dev/null || true
+rmdir "$pics" "$vids" 2>/dev/null || true
+
+power=$(cat /sys/class/power_supply/A*/online 2>/dev/null | head -1)
+{
+    echo "### $label"
+    echo
+    echo "$(uname -m), $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2 | sed 's/^ //'), $([ "$power" = 1 ] && echo 'on mains' || echo 'on battery'), $(grep -m1 'first camera\|camera:' "$out/preview.log" || true)"
+    echo
+    echo "| Scenario | app work, M instr/s | ffmpeg work, M instr/s | fps | CPU % (all threads) | busiest other thread % | main thread % | ffmpeg % | dropped | latency p50 ms | latency p99 ms | GPU filter ms | GPU window ms | draw+capture ms | peak MB | launch ms |"
+    echo "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"
+    echo "| Preview | $(work preview) | $(summarise "$out/preview.log" 0 | sed 's/|/ | /g') |"
+    echo "| Record, sound, Noir | $(work record) | $(summarise "$out/record.log" 1 | sed 's/|/ | /g') |"
+    echo "| Record, silent | $(work silent) | $(summarise "$out/silent.log" 1 | sed 's/|/ | /g') |"
+    echo
+    echo "Video with sound: $rec_video(wanted about $((RECORD * 30)) frames). Silent video: $silent_video(wanted about $((RECORD_SILENT * 30)) frames). Photos saved: $photos of 3."
+    echo
+} | tee "$out/summary.md"

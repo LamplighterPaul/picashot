@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Picashot
+GenericName=Photo Booth
+Comment=Take photos and videos with your camera, with fun filters
+Exec=picashot
+Icon=picashot
+Terminal=false
+Categories=AudioVideo;Video;Recorder;
+Keywords=camera;webcam;photo;booth;selfie;video;filter;
+StartupWMClass=picashot

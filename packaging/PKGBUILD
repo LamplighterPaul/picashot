@@ -1,0 +1,26 @@
+# Maintainer: Paul Zammit
+# Builds from the checkout this file sits in: run `makepkg -si` inside packaging/.
+# For the AUR, replace the source line with the release tarball once there is one.
+pkgname=picashot
+pkgver=0.1
+pkgrel=1
+pkgdesc="A photo booth: camera on screen at launch, fun GPU filters, photos and videos"
+arch=('x86_64' 'aarch64')
+url="https://github.com/LamplighterPaul/picashot"
+license=('MIT')
+depends=('sdl3>=3.4' 'vulkan-icd-loader' 'libjpeg-turbo' 'hicolor-icon-theme')
+makedepends=('shaderc')
+optdepends=('ffmpeg: record videos'
+            'intel-media-driver: GPU video encoding on Intel'
+            'libnotify: a notification when a photo or video is saved'
+            'vulkan-swrast: run without a GPU driver, on the CPU')
+source=()
+
+build() {
+  make -C "$startdir/.." clean
+  make -C "$startdir/.." PREFIX=/usr
+}
+
+package() {
+  make -C "$startdir/.." PREFIX=/usr DESTDIR="$pkgdir" install
+}
