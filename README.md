@@ -22,6 +22,12 @@
 
 <p align="center"><em>Picashot on Omarchy, with the Neon filter.</em></p>
 
+<p align="center">
+  <img src="docs/screenshot-recording.jpg" alt="Picashot recording a video on Omarchy" width="900">
+</p>
+
+<p align="center"><em>Recording a video: the timer runs top left and the red button becomes Stop.</em></p>
+
 Press Space for a photo or V for a video, or use the two buttons at the bottom, and pick from sixteen
 live filters.
 
