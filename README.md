@@ -1,7 +1,29 @@
-# Picashot
+<p align="center">
+  <img src="data/picashot.svg" width="128" alt="Picashot logo">
+</p>
 
-A photo booth for Linux. Launch it and your camera is on screen. Press Space for a photo or V for a
-video, or use the two buttons at the bottom, and pick from sixteen live filters.
+<h1 align="center">Picashot</h1>
+
+<p align="center">
+  A photo booth for Linux. Launch it and your camera is on screen.<br>
+  Photos, videos and sixteen live GPU filters.
+</p>
+
+<p align="center">
+  <a href="https://github.com/LamplighterPaul/picashot/releases/latest"><img src="https://img.shields.io/github/v/release/LamplighterPaul/picashot?label=release" alt="Latest release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/LamplighterPaul/picashot" alt="MIT licence"></a>
+  <img src="https://img.shields.io/badge/platform-Linux-informational" alt="Linux">
+  <img src="https://img.shields.io/badge/C17-SDL3%20%2B%20Vulkan-blue" alt="C17, SDL3 and Vulkan">
+</p>
+
+<p align="center">
+  <img src="docs/screenshot.jpg" alt="Picashot running on Omarchy with the Neon filter" width="900">
+</p>
+
+<p align="center"><em>Picashot on Omarchy, with the Neon filter.</em></p>
+
+Press Space for a photo or V for a video, or use the two buttons at the bottom, and pick from sixteen
+live filters.
 
 Picashot is written in C with SDL3 and Vulkan. It is plain C17 with nothing tied to one CPU
 architecture, and it uses only Vulkan 1.0 features, so it is meant for x86_64 and aarch64 and for any
