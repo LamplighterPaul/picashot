@@ -1,3 +1,6 @@
+> [!NOTE]
+> **Archived:** [Omarchy](https://omarchy.org) now includes built-in camera functionality, which I use instead. Leaving this repo up as an archive.
+
 <p align="center">
   <img src="data/picashot.svg" width="128" alt="Picashot logo">
 </p>
